@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tubo de Rubens — Ondulatória</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --bg: #050a12;
+  --bg2: #0a1220;
+  --bg3: #0f1a2e;
+  --accent: #00d4ff;
+  --flame: #ff6b1a;
+  --flame2: #ffaa00;
+  --text: #e8f0fe;
+  --muted: #5a7a9a;
+  --border: rgba(0,212,255,0.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* NAV TABS */
+.top-nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  background:rgba(5,10,18,0.95);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 2rem;gap:0;
+  height:56px;
+}
+.nav-logo{
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;
+  color:var(--accent);margin-right:2rem;white-space:nowrap;
+}
+.tab-btn{
+  background:none;border:none;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:500;
+  color:var(--muted);padding:0 1.2rem;height:56px;
+  border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* PAGES */
+.page{display:none;padding-top:72px;min-height:100vh}
+.page.active{display:block}
+.inner{max-width:1100px;margin:0 auto;padding:2rem 2rem 4rem}
+
+/* SECTION HEADER */
+.s-label{font-family:'Space Grotesk',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.12em;color:var(--accent);margin-bottom:0.5rem}
+.s-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.6rem,3.5vw,2.6rem);font-weight:700;line-height:1.1;margin-bottom:0.8rem;letter-spacing:-0.03em}
+.s-desc{color:var(--muted);font-size:0.9rem;line-height:1.65;max-width:600px;margin-bottom:2rem}
+
+/* TUBE CARD */
+.tube-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:2.5rem}
+#tube-canvas{width:100%;height:400px;display:block}
+.wave-wrap{padding:0 1.5rem 0}
+#wave-canvas{width:100%;height:72px;display:block;border-radius:8px;background:var(--bg3)}
+.tube-controls{padding:1.2rem 1.5rem 1.4rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:0.9rem}
+.ctrl-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.ctrl-label{font-family:'Space Grotesk',sans-serif;font-size:0.72rem;font-weight:600;color:var(--muted);width:72px;flex-shrink:0}
+.ctrl-val{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);width:76px}
+input[type=range]{flex:1;-webkit-appearance:none;height:3px;background:var(--bg3);border-radius:2px;outline:none;min-width:140px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 8px rgba(0,212,255,0.5)}
+.chips{display:flex;gap:0.4rem;flex-wrap:wrap}
+.chip{background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:0.7rem;font-weight:600;padding:3px 9px;border-radius:20px;cursor:pointer;transition:all 0.18s}
+.chip:hover,.chip.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+
+/* GLOSSARY */
+.gloss-title{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:1rem;color:var(--accent)}
+.gloss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.8rem}
+.g-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color 0.2s,transform 0.2s}
+.g-card:hover{border-color:rgba(0,212,255,0.4);transform:translateY(-2px)}
+.g-card.open{border-color:rgba(0,212,255,0.5)}
+.g-header{display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.1rem}
+.g-name{font-family:'Space Grotesk',sans-serif;font-size:0.95rem;font-weight:700}
+.g-icon{color:var(--accent);font-size:1.1rem;transition:transform 0.25s}
+.g-card.open .g-icon{transform:rotate(45deg)}
+.g-body{display:none;padding:0 1.1rem 1.1rem}
+.g-card.open .g-body{display:block}
+.g-def{font-size:0.8rem;line-height:1.6;color:#8aaac8;margin-bottom:0.7rem}
+.g-canvas{width:100%;height:86px;border-radius:6px;background:var(--bg3);display:block}
+
+/* LIVE PAGE */
+.live-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:1.5rem}
+#live-canvas{width:100%;height:420px;display:block}
+.live-bottom{padding:1.2rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
+.mic-btn{
+  background:none;border:2px solid var(--accent);color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:700;
+  padding:10px 24px;border-radius:40px;cursor:pointer;
+  transition:all 0.2s;display:flex;align-items:center;gap:8px;
+}
+.mic-btn:hover{background:var(--accent);color:var(--bg)}
+.mic-btn.active{background:#ff2244;border-color:#ff2244;color:#fff}
+.mic-status{font-size:0.8rem;color:var(--muted)}
+.freq-display{font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;color:var(--accent);margin-left:auto}
+.note-display{font-size:0.75rem;color:var(--muted)}
+
+/* live spectrum bar */
+#spectrum-canvas{width:100%;height:60px;display:block;border-radius:8px;background:var(--bg3);margin:0 1.5rem 1.2rem;width:calc(100% - 3rem)}
+
+/* divider */
+.divider{height:1px;background:var(--border);margin:2.5rem 0}
+
+footer{text-align:center;padding:1.5rem;color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <span class="nav-logo">🔥 Tubo de Rubens</span>
+  <button class="tab-btn active" onclick="switchTab('manual')">Frequência Manual</button>
+  <button class="tab-btn" onclick="switchTab('live')">Ao Vivo 🎵</button>
+</nav>
+
+<!-- ABA 1: MANUAL + GLOSSÁRIO -->
+<div class="page active" id="page-manual">
+<div class="inner">
+  <div class="s-label">Experimento Interativo</div>
+  <h1 class="s-title">Tubo de Rubens</h1>
+  <p class="s-desc">Ajuste a frequência e observe as chamas formando padrões de ondas estacionárias. As chamas são altas nos ventres e baixas nos nós.</p>
+
+  <div class="tube-card">
+    <canvas id="tube-canvas"></canvas>
+    <div class="wave-wrap"><canvas id="wave-canvas"></canvas></div>
+    <div class="tube-controls">
+      <div class="ctrl-row">
+        <span class="ctrl-label">Frequência</span>
+        <input type="range" id="freq-slider" min="30" max="800" value="150" step="1">
+        <span class="ctrl-val"><span id="freq-val">150</span> Hz</span>
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Notas</span>
+        <div class="chips" id="note-chips"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="gloss-title">Glossário de Ondulatória</div>
+  <div class="gloss-grid" id="gloss-grid"></div>
+</div>
+</div>
+
+<!-- ABA 2: AO VIVO -->
+<div class="page" id="page-live">
+<div class="inner">
+  <div class="s-label">Modo Ao Vivo</div>
+  <h1 class="s-title">Reação à Música</h1>
+  <p class="s-desc">Ative o microfone e coloque uma música. As chamas vão reagir à frequência dominante em tempo real, igual ao experimento real.</p>
+
+  <div class="live-card">
+    <canvas id="live-canvas"></canvas>
+    <canvas id="spectrum-canvas"></canvas>
+    <div class="live-bottom">
+      <button class="mic-btn" id="mic-btn" onclick="toggleMic()">
+        <span id="mic-icon">🎤</span>
+        <span id="mic-text">Ativar Microfone</span>
+      </button>
+      <span class="mic-status" id="mic-status">Aguardando permissão do microfone...</span>
+      <div style="margin-left:auto;text-align:right">
+        <div class="freq-display"><span id="live-freq">—</span> Hz</div>
+        <div class="note-display" id="live-note">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>Ondulatória & Tubo de Rubens — projeto educacional</footer>
+
+<script>
+/* ───────── TAB SWITCH ───────── */
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+/* ───────── SHARED TUBE RENDERER ───────── */
+function buildTube(canvasId, getFreq){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45,2,0.1,100);
+  camera.position.set(0,3.2,9);
+  camera.lookAt(0,0.5,0);
+  scene.add(new THREE.AmbientLight(0x0a1a2e,1));
+  const dl = new THREE.DirectionalLight(0x00d4ff,0.4);
+  dl.position.set(0,5,5); scene.add(dl);
+
+  // tube
+  const tube = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22,0.22,12,32),
+    new THREE.MeshPhongMaterial({color:0x1a3a5c,transparent:true,opacity:0.5,shininess:120,specular:0x00d4ff})
+  );
+  tube.rotation.z=Math.PI/2; scene.add(tube);
+  [-6,6].forEach(x=>{
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.12,32),new THREE.MeshPhongMaterial({color:0x2a5080}));
+    cap.rotation.z=Math.PI/2; cap.position.x=x; scene.add(cap);
+  });
+
+  // flames
+  const N=44, flames=[];
+  for(let i=0;i<N;i++){
+    const x=-6+(12/(N-1))*i;
+    const geo=new THREE.BufferGeometry();
+    const pos=new Float32Array([x,0.28,0]);
+    geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    const pt=new THREE.Points(geo,new THREE.PointsMaterial({color:0xff6b1a,size:0.3,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending}));
+    scene.add(pt);
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.016,0.024,0.1,6),new THREE.MeshBasicMaterial({color:0xffaa00,transparent:true,opacity:0.7}));
+    stem.position.set(x,0.3,0); scene.add(stem);
+    flames.push({pt,stem,x,phase:Math.random()*Math.PI*2});
+  }
+
+  function resize(){
+    const w=canvas.clientWidth,h=canvas.clientHeight;
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h; camera.updateProjectionMatrix();
+  }
+  resize(); window.addEventListener('resize',resize);
+
+  let t=0;
+  function animate(){
+    requestAnimationFrame(animate);
+    t+=0.016;
+    const freq=getFreq();
+    const lambda=12/(freq/55);
+    const k=(2*Math.PI)/lambda;
+    flames.forEach(f=>{
+      const standing=Math.abs(Math.sin(k*(f.x+6)));
+      const h=0.08+standing*1.7;
+      const wobble=Math.sin(t*9+f.phase)*0.06*standing;
+      const arr=f.pt.geometry.attributes.position.array;
+      arr[1]=0.26+h+wobble;
+      f.pt.geometry.attributes.position.needsUpdate=true;
+      f.pt.material.size=0.15+standing*0.55;
+      f.pt.material.opacity=0.45+standing*0.55;
+      f.pt.material.color.lerpColors(new THREE.Color(0xff2200),new THREE.Color(0xffee00),standing);
+      f.stem.position.y=0.26+h*0.28;
+      f.stem.scale.y=0.4+standing*2.2;
+    });
+    renderer.render(scene,camera);
+  }
+  animate();
+}
+
+/* ───────── MANUAL TUBE ───────── */
+let manualFreq=150;
+buildTube('tube-canvas',()=>manualFreq);
+
+const slider=document.getElementById('freq-slider');
+const freqVal=document.getElementById('freq-val');
+slider.addEventListener('input',()=>{
+  manualFreq=parseInt(slider.value);
+  freqVal.textContent=manualFreq;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+});
+
+const NOTES=[
+  {name:'Dó (C3)',freq:131},{name:'Mi (E3)',freq:165},{name:'Sol (G3)',freq:196},
+  {name:'Lá (A3)',freq:220},{name:'Dó (C4)',freq:262},{name:'Mi (E4)',freq:330},
+  {name:'Lá (A4)',freq:440},{name:'Mi (E5)',freq:659}
+];
+const chipWrap=document.getElementById('note-chips');
+NOTES.forEach(n=>{
+  const c=document.createElement('button');
+  c.className='chip'; c.textContent=`${n.name} ${n.freq}Hz`;
+  c.onclick=()=>{
+    manualFreq=n.freq; slider.value=n.freq; freqVal.textContent=n.freq;
+    document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+  };
+  chipWrap.appendChild(c);
+});
+
+/* wave canvas */
+const wc=document.getElementById('wave-canvas');
+const wctx=wc.getContext('2d');
+let wt=0;
+function drawWave(){
+  const W=wc.offsetWidth,H=wc.offsetHeight;
+  wc.width=W*devicePixelRatio; wc.height=H*devicePixelRatio;
+  wctx.scale(devicePixelRatio,devicePixelRatio);
+  wctx.fillStyle='#0a1220'; wctx.fillRect(0,0,W,H);
+  const lambda=12/(manualFreq/55),k=(2*Math.PI)/lambda;
+  wctx.beginPath();
+  for(let px=0;px<W;px++){
+    const amp=Math.abs(Math.sin(k*(px/W)*12));
+    const y=H/2-amp*(H/2-5);
+    px===0?wctx.moveTo(px,y):wctx.lineTo(px,y);
+  }
+  for(let px=W-1;px>=0;px--){
+    const amp=Math.abs(Math.sin(k*(px/W)*12));
+    const y=H/2+amp*(H/2-5);
+    wctx.lineTo(px,y);
+  }
+  wctx.closePath();
+  const g=wctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'rgba(255,107,26,0.6)');
+  g.addColorStop(0.5,'rgba(255,170,0,0.3)');
+  g.addColorStop(1,'rgba(255,107,26,0.6)');
+  wctx.fillStyle=g; wctx.fill();
+  // traveling
+  wctx.beginPath(); wctx.strokeStyle='rgba(0,212,255,0.45)'; wctx.lineWidth=1.5;
+  for(let px=0;px<W;px++){
+    const y=H/2+Math.sin(k*(px/W)*12-wt*4)*(H/2-8)*0.35;
+    px===0?wctx.moveTo(px,y):wctx.lineTo(px,y);
+  }
+  wctx.stroke();
+  wt+=0.016;
+  requestAnimationFrame(drawWave);
+}
+drawWave();
+
+/* ───────── LIVE MIC TUBE ───────── */
+let liveFreq=150;
+let audioCtx=null, analyser=null, micStream=null, micActive=false;
+
+buildTube('live-canvas',()=>liveFreq);
+
+function noteFromFreq(f){
+  const notes=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const semitones=Math.round(12*Math.log2(f/16.35));
+  const oct=Math.floor(semitones/12);
+  const note=notes[((semitones%12)+12)%12];
+  return `${note}${oct}`;
+}
+
+async function toggleMic(){
+  if(micActive){ stopMic(); return; }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtx.createAnalyser();
+    analyser.fftSize=4096;
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    micStream=stream; micActive=true;
+    document.getElementById('mic-btn').classList.add('active');
+    document.getElementById('mic-icon').textContent='⏹';
+    document.getElementById('mic-text').textContent='Parar';
+    document.getElementById('mic-status').textContent='Microfone ativo — coloque a música!';
+    analyzeMic();
+  } catch(e){
+    document.getElementById('mic-status').textContent='Permissão negada. Habilite o microfone no navegador.';
+  }
+}
+
+function stopMic(){
+  if(micStream) micStream.getTracks().forEach(t=>t.stop());
+  if(audioCtx) audioCtx.close();
+  micActive=false; analyser=null;
+  document.getElementById('mic-btn').classList.remove('active');
+  document.getElementById('mic-icon').textContent='🎤';
+  document.getElementById('mic-text').textContent='Ativar Microfone';
+  document.getElementById('mic-status').textContent='Microfone desativado.';
+  document.getElementById('live-freq').textContent='—';
+  document.getElementById('live-note').textContent='—';
+}
+
+const sc=document.getElementById('spectrum-canvas');
+const sctx=sc.getContext('2d');
+
+function analyzeMic(){
+  if(!micActive||!analyser) return;
+  const buf=new Float32Array(analyser.frequencyBinCount);
+  analyser.getFloatFrequencyData(buf);
+  const rate=audioCtx.sampleRate;
+  const binSize=rate/analyser.fftSize;
+  // find dominant freq between 60-1200Hz
+  let maxVal=-Infinity, maxIdx=0;
+  const minBin=Math.floor(60/binSize), maxBin=Math.floor(1200/binSize);
+  for(let i=minBin;i<maxBin&&i<buf.length;i++){
+    if(buf[i]>maxVal){maxVal=buf[i];maxIdx=i;}
+  }
+  const detectedFreq=maxIdx*binSize;
+  if(maxVal>-60 && detectedFreq>60){
+    liveFreq=liveFreq*0.7+detectedFreq*0.3; // smooth
+    document.getElementById('live-freq').textContent=Math.round(liveFreq);
+    document.getElementById('live-note').textContent=noteFromFreq(liveFreq);
+  }
+
+  // draw spectrum
+  const W=sc.offsetWidth,H=sc.offsetHeight;
+  sc.width=W*devicePixelRatio; sc.height=H*devicePixelRatio;
+  sctx.scale(devicePixelRatio,devicePixelRatio);
+  sctx.fillStyle='#0a1220'; sctx.fillRect(0,0,W,H);
+  const drawBins=Math.min(buf.length,800);
+  const bw=W/drawBins;
+  for(let i=0;i<drawBins;i++){
+    const v=Math.max(0,(buf[i]+100)/60);
+    const barH=v*H;
+    const hue=200+i/drawBins*60;
+    sctx.fillStyle=`hsla(${hue},100%,60%,0.8)`;
+    sctx.fillRect(i*bw,H-barH,bw-0.5,barH);
+  }
+  // marker for detected
+  if(detectedFreq>0){
+    const mx=(maxIdx/drawBins)*W;
+    sctx.strokeStyle='#ff6b1a'; sctx.lineWidth=2;
+    sctx.beginPath(); sctx.moveTo(mx,0); sctx.lineTo(mx,H); sctx.stroke();
+  }
+
+  requestAnimationFrame(analyzeMic);
+}
+
+/* ───────── GLOSSÁRIO ───────── */
+const TERMS=[
+  {name:'Onda',def:'Perturbação que se propaga no espaço transportando energia sem transportar matéria. Pode ser mecânica (som) ou eletromagnética (luz).',
+   draw(ctx,W,H,t){
+     ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.beginPath();
+     for(let x=0;x<W;x++){const y=H/2+Math.sin((x/W)*4*Math.PI-t*3)*H*0.3;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+     ctx.stroke();
+     arw(ctx,W*0.6,H*0.16,W*0.6+28,H*0.16,'#ff6b1a');
+   }},
+  {name:'Frequência',def:'Número de ciclos completos por segundo (Hz). Maior frequência = som mais agudo. No tubo de Rubens, determina o espaçamento dos padrões.',
+   draw(ctx,W,H,t){
+     [[0.9,'#5a7a9a'],[2.6,'#ff6b1a']].forEach(([f,c],i)=>{
+       ctx.strokeStyle=c;ctx.lineWidth=1.8;ctx.beginPath();
+       const yo=i===0?H*0.33:H*0.68;
+       for(let x=0;x<W;x++){const y=yo+Math.sin((x/W)*f*2*Math.PI-t*3)*H*0.17;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+       ctx.stroke();
+       ctx.fillStyle=c;ctx.font='10px Inter';ctx.fillText(i===0?'baixa f':'alta f',6,yo-H*0.12);
+     });
+   }},
+  {name:'Comprimento de onda',def:'Distância entre dois pontos em fase idêntica (crista a crista). Símbolo: λ. Relação com frequência: λ = v/f.',
+   draw(ctx,W,H,t){
+     ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.beginPath();
+     for(let x=0;x<W;x++){const y=H/2+Math.sin((x/W)*2*Math.PI-t*2)*H*0.3;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+     ctx.stroke();
+     ctx.strokeStyle='#ffaa00';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+     ctx.beginPath();ctx.moveTo(W*0.1,H*0.13);ctx.lineTo(W*0.86,H*0.13);ctx.stroke();
+     ctx.setLineDash([]);
+     ctx.fillStyle='#ffaa00';ctx.font='bold 12px Space Grotesk';ctx.textAlign='center';
+     ctx.fillText('λ',W*0.48,H*0.09+4);ctx.textAlign='start';
+   }},
+  {name:'Amplitude',def:'Deslocamento máximo em relação ao equilíbrio. Determina a intensidade (volume) do som. No tubo, chamas mais altas indicam maior amplitude local.',
+   draw(ctx,W,H,t){
+     const A=H*0.33;ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.beginPath();
+     for(let x=0;x<W;x++){const y=H/2+Math.sin((x/W)*2*Math.PI-t*2)*A;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+     ctx.stroke();
+     const ax=W*0.25;
+     ctx.strokeStyle='#ff6b1a';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(ax,H/2);ctx.lineTo(ax,H/2-A);ctx.stroke();
+     ctx.fillStyle='#ff6b1a';ctx.font='bold 11px Space Grotesk';ctx.fillText('A',ax+4,H/2-A+13);
+   }},
+  {name:'Período',def:'Tempo para completar um ciclo completo. Símbolo: T. Relação: T = 1/f. Um som de 440 Hz tem período de ~2,3 milissegundos.',
+   draw(ctx,W,H,t){
+     ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.beginPath();
+     for(let x=0;x<W;x++){const y=H/2+Math.sin((x/W)*2*Math.PI-t*2)*H*0.3;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+     ctx.stroke();
+     ctx.strokeStyle='#a855f7';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+     ctx.beginPath();ctx.moveTo(W*0.1,H*0.88);ctx.lineTo(W*0.86,H*0.88);ctx.stroke();
+     ctx.setLineDash([]);
+     ctx.fillStyle='#a855f7';ctx.font='bold 11px Space Grotesk';ctx.textAlign='center';ctx.fillText('T',W/2,H*0.97);ctx.textAlign='start';
+   }},
+  {name:'Nó',def:'Ponto de amplitude permanentemente zero em uma onda estacionária. As chamas ficam baixas nos nós pois a pressão do gás não varia ali.',
+   draw(ctx,W,H,t){
+     stdWave(ctx,W,H,t);
+     [0,W/2,W].forEach(x=>{
+       ctx.fillStyle='rgba(90,122,154,0.8)';ctx.beginPath();ctx.arc(x,H/2,5,0,Math.PI*2);ctx.fill();
+       ctx.fillStyle='#5a7a9a';ctx.font='10px Inter';ctx.textAlign='center';ctx.fillText('nó',x,H*0.13);
+     });ctx.textAlign='start';
+   }},
+  {name:'Ventre',def:'Ponto de amplitude máxima em onda estacionária. As chamas ficam altas nos ventres pois a pressão varia ao máximo ali.',
+   draw(ctx,W,H,t){
+     stdWave(ctx,W,H,t);
+     [W*0.25,W*0.75].forEach(x=>{
+       ctx.fillStyle='rgba(255,107,26,0.8)';ctx.beginPath();ctx.arc(x,H/2,5,0,Math.PI*2);ctx.fill();
+       ctx.fillStyle='#ff6b1a';ctx.font='10px Inter';ctx.textAlign='center';ctx.fillText('ventre',x,H*0.13);
+     });ctx.textAlign='start';
+   }},
+  {name:'Onda Estacionária',def:'Padrão formado pela superposição de duas ondas idênticas em sentidos opostos. Nós e ventres ficam fixos — é exatamente isso que o tubo de Rubens torna visível.',
+   draw(ctx,W,H,t){
+     ctx.strokeStyle='rgba(0,212,255,0.35)';ctx.lineWidth=1.2;
+     [1,-1].forEach(dir=>{
+       ctx.beginPath();
+       for(let x=0;x<W;x++){const y=H/2+Math.sin((x/W)*2*Math.PI-dir*t*3)*H*0.3;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+       ctx.stroke();
+     });
+     stdWave(ctx,W,H,t);
+   }},
+  {name:'Ressonância',def:'Vibração com amplitude máxima quando a frequência aplicada coincide com a frequência natural do sistema. O tubo de Rubens entra em ressonância em frequências específicas.',
+   draw(ctx,W,H,t){
+     const amp=0.12+0.26*Math.abs(Math.sin(t*0.6));
+     ctx.strokeStyle=`rgba(255,107,26,${0.4+amp*1.5})`;ctx.lineWidth=1.5+amp*4;ctx.beginPath();
+     for(let x=0;x<W;x++){const y=H/2+Math.sin((x/W)*2*Math.PI-t*2)*H*amp;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+     ctx.stroke();
+     ctx.fillStyle='rgba(255,107,26,0.6)';ctx.font='10px Inter';ctx.textAlign='center';
+     ctx.fillText(amp>0.22?'ressonando!':'fora de ressonância',W/2,H*0.11);ctx.textAlign='start';
+   }},
+  {name:'Interferência',def:'Sobreposição de ondas. Construtiva: amplitudes somam. Destrutiva: amplitudes se cancelam. Responsável pela formação dos padrões estacionários.',
+   draw(ctx,W,H,t){
+     [[1.4,2,'rgba(0,212,255,0.4)'],[2.1,-1.5,'rgba(168,85,247,0.4)']].forEach(([f,d,c])=>{
+       ctx.strokeStyle=c;ctx.lineWidth=1.2;ctx.beginPath();
+       for(let x=0;x<W;x++){const y=H/2+Math.sin((x/W)*f*2*Math.PI-d*t)*H*0.2;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+       ctx.stroke();
+     });
+     ctx.strokeStyle='#ff6b1a';ctx.lineWidth=2;ctx.beginPath();
+     for(let x=0;x<W;x++){
+       const s1=Math.sin((x/W)*1.4*2*Math.PI-2*t)*H*0.2;
+       const s2=Math.sin((x/W)*2.1*2*Math.PI+1.5*t)*H*0.2;
+       const y=H/2+s1+s2;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+     }
+     ctx.stroke();
+   }}
+];
+
+function stdWave(ctx,W,H,t){
+  ctx.strokeStyle='#ff6b1a';ctx.lineWidth=2.5;ctx.beginPath();
+  for(let x=0;x<W;x++){const y=H/2+Math.sin((x/W)*2*Math.PI)*Math.cos(t*2)*H*0.32;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+  ctx.stroke();
+}
+function arw(ctx,x1,y1,x2,y2,col){
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-8*Math.cos(a-0.4),y2-8*Math.sin(a-0.4));
+  ctx.lineTo(x2-8*Math.cos(a+0.4),y2-8*Math.sin(a+0.4));
+  ctx.closePath();ctx.fill();
+}
+
+// build cards
+const grid=document.getElementById('gloss-grid');
+TERMS.forEach((term,idx)=>{
+  const card=document.createElement('div');
+  card.className='g-card';
+  card.innerHTML=`<div class="g-header"><span class="g-name">${term.name}</span><span class="g-icon">+</span></div>
+  <div class="g-body"><p class="g-def">${term.def}</p><canvas class="g-canvas" id="gc-${idx}"></canvas></div>`;
+  grid.appendChild(card);
+  card.addEventListener('click',()=>{
+    const was=card.classList.contains('open');
+    document.querySelectorAll('.g-card').forEach(c=>c.classList.remove('open'));
+    if(!was) card.classList.add('open');
+  });
+});
+
+let gt=0;
+function animGloss(){
+  gt+=0.016;
+  document.querySelectorAll('.g-card.open').forEach(card=>{
+    const idx=Array.from(grid.children).indexOf(card);
+    const cv=document.getElementById(`gc-${idx}`);
+    if(!cv) return;
+    const W=cv.offsetWidth,H=cv.offsetHeight;
+    cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;
+    const ctx=cv.getContext('2d');
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    ctx.fillStyle='#0a1220';ctx.fillRect(0,0,W,H);
+    TERMS[idx].draw(ctx,W,H,gt);
+  });
+  requestAnimationFrame(animGloss);
+}
+animGloss();
+</script>
+</body>
+</html>
